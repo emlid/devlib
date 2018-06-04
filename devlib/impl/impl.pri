@@ -8,3 +8,4 @@ HEADERS += \
     $$PWD/PartitionImpl.h \
     $$PWD/StorageDeviceFileImpl.h \
     $$PWD/StorageDeviceInfoImpl.h \
+    $$PWD/logging.h

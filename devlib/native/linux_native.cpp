@@ -17,16 +17,18 @@
 #include <QtCore>
 
 namespace linutil {
+    Q_LOGGING_CATEGORY(linuxlog, "linux_native");
+
     static void errnoWarning(char const* function, QString const& message, int error) {
-        qWarning() << '[' << function << "]: "
-                   << message << '\n'
-                   << QString("\t[linux errno]: ") + std::strerror(error);
+        qCWarning(linuxlog()) << '[' << function << "]: "
+                              << message << '\n'
+                              << QString("\t[linux errno]: ") + std::strerror(error);
     }
 
 
     static void warning(char const* function, QString const& message) {
-        qWarning() << '[' << function << "]: "
-                   << message;
+        qCWarning(linuxlog()) << '[' << function << "]: "
+                              << message;
     }
 
 
@@ -83,7 +85,7 @@ namespace linutil {
         auto partlist = ::blkid_probe_get_partitions(probe);
 
         if (!partlist) {
-            qWarning() << "Device doesn't have any partitions.";
+            qCWarning(linuxlog()) << "Device doesn't have any partitions.";
             return 0;
         }
 

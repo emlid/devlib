@@ -11,6 +11,8 @@
 #include <memory>
 
 namespace winutil {
+    Q_LOGGING_CATEGORY(winlog, "windows_native");
+
     constexpr auto win32IOBlockDivider(void) {
         return 512;
     }
@@ -157,7 +159,7 @@ namespace winutil {
                                     NULL, 0, /*out*/PDWORD(&detailDataSize), NULL);
 
             if (detailDataSize == 0) {
-                qDebug() << "forEachDevices: get required size failed.";
+                qCWarning(winlog()) << "forEachDevices: get required size failed.";
                 continue;
             }
 
@@ -174,7 +176,7 @@ namespace winutil {
                                  /*out*/detailData, detailDataSize, NULL, NULL);
 
             if (!successful) {
-                qDebug() << "availableDevices: get detailData failed.";
+                qWarning(winlog()) << "availableDevices: get detailData failed.";
                 continue;
             }
 
@@ -242,7 +244,7 @@ auto devlib::native::umount(QString const& mntpt)
 
     if (!successful) {
         ::CloseHandle(hMountpoint);
-        qWarning() << "Can not lock volume: " << mntpt;
+        qCWarning(winutil::winlog()) << "Can not lock volume: " << mntpt;
         return {};
     }
 
@@ -254,7 +256,7 @@ auto devlib::native::umount(QString const& mntpt)
 
     if (!successful) {
         ::CloseHandle(hMountpoint);
-        qWarning() << "Can not umount volume: " << mntpt;
+        qCWarning(winutil::winlog()) << "Can not umount volume: " << mntpt;
         return {};
     }
 
