@@ -1,0 +1,42 @@
+# Before read or modify this script, please check README.md
+# for understanding all build steps
+version: '{branch}-{build}'
+
+
+build:
+  verbosity: minimal
+
+
+environment:
+  ShadowBuildDir: C:\projects\edge-firmware-updater\build_windows_install
+  QtBinPath: C:\Qt\5.9\msvc2015\bin
+  VisualStudio: "Microsoft Visual Studio 14.0"
+
+  matrix:
+    - Build: 'Release'
+      Config: release
+    - Build: 'Debug'
+      Config: debug
+
+
+install:
+  # Set Visual Studio build environment
+  - call "%ProgramFiles(x86)%\%VISUALSTUDIO%\VC\vcvarsall.bat" x86
+  - ps: |
+      # Set Path (Add Visual Studio and Qt)
+      $Env:Path = "C:\Qt\Tools\QtCreator\bin;${Env:QtBinPath};${Env:Path}"
+
+
+build_script:
+  # Get logical cores count
+  - ps: |
+      $Env:Cores = Get-WmiObject -class Win32_Processor | `
+                      Select-Object -ExpandProperty NumberOfLogicalProcessors
+
+  # Generate makefile
+  - mkdir "%SHADOWBUILDDIR%"
+  - cd "%SHADOWBUILDDIR%"
+  - qmake "%APPVEYOR_BUILD_FOLDER%\devlib.pro" CONFIG+=%CONFIG%
+
+  # Build
+  - jom -j%CORES%
