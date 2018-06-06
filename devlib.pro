@@ -22,16 +22,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        StorageDeviceService.cpp \
+        devlib/StorageDeviceService.cpp \
 
 
 HEADERS += \
-        devlib.h \
-        Mountpoint.h \
-        Partition.h \
-        StorageDeviceInfo.h \
-        StorageDeviceFile.h \
-        StorageDeviceService.h \
+        devlib/devlib.h \
+        devlib/Mountpoint.h \
+        devlib/Partition.h \
+        devlib/StorageDeviceInfo.h \
+        devlib/StorageDeviceFile.h \
+        devlib/StorageDeviceService.h \
 
 unix {
     target.path = /usr/lib
