@@ -1,5 +1,5 @@
 #include "PartitionImpl.h"
-#include "native/native.h"
+#include "src/native/native.h"
 
 devlib::impl::PartitionImpl::PartitionImpl(const QString &filePath,
                                            const QString &label,

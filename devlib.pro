@@ -21,24 +21,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-SOURCES += \
-        devlib/StorageDeviceService.cpp \
-
-
-HEADERS += \
-        devlib/devlib.h \
-        devlib/Mountpoint.h \
-        devlib/Partition.h \
-        devlib/StorageDeviceInfo.h \
-        devlib/StorageDeviceFile.h \
-        devlib/StorageDeviceService.h \
-
 unix {
     target.path = /usr/lib
     INSTALLS += target
 }
 
 include(devlib_deps.pri)
-include(native/native.pri)
-include(impl/impl.pri)
+include(src/src.pri)
 
