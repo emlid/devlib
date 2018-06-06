@@ -1,0 +1,138 @@
+language: cpp
+
+
+env:
+  global:
+    - CCACHE_CPP2=1
+    - JOBS=4
+    - SHADOW_BUILD_DIR=/tmp/shadow_build_dir
+
+    - QT_SHORT_VERSION=5.9
+    - QT_FULL_VERSION=${QT_SHORT_VERSION}.3
+
+    - LINUX_SPEC=linux-g++-64
+    - OSX_SPEC=macx-clang
+
+    - GCC_VERSION=7
+    - GXX_VERSION=${GCC_VERSION}
+
+    - CACHE_DIR=/tmp/qtcache
+
+
+matrix:
+    fast_finish: true
+    include:
+        # Release jobs
+        - os: linux
+          dist: trusty
+          env: SPEC="${LINUX_SPEC}" CONFIG=release
+          sudo: required
+          if: branch = master OR type = pull_request
+
+        - os: osx
+          osx_image: xcode9
+          env: SPEC="${OSX_SPEC}" CONFIG=release
+          sudo: required
+          if: branch = master OR type = pull_request
+
+        # Debug jobs
+        - os: linux
+          dist: trusty
+          env: SPEC="${LINUX_SPEC}" CONFIG=debug
+          sudo: required
+          if: branch =~ ^wip OR branch =~ ^pr- OR type = pull_request
+
+        - os: osx
+          osx_image: xcode9
+          env: SPEC="${OSX_SPEC}" CONFIG=debug
+          sudo: required
+          if: branch =~ ^wip OR branch =~ ^pr- OR type = pull_request
+
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+
+    packages:
+      - ccache
+      - libudev-dev
+      - wget
+      - libblkid-dev
+
+
+cache:
+  directories:
+    - $HOME/.ccache
+    - ${CACHE_DIR}
+
+
+before_install:
+  # fetch entire git repo to properly determine the version
+  - if [ "${CONFIG}" = "installer" ]; then
+        cd ${TRAVIS_BUILD_DIR} && git fetch --unshallow && git fetch --all --tags;
+    fi
+
+  # compile threads
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+        export JOBS=$((`cat /proc/cpuinfo | grep -c ^processor`+1));
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+        export JOBS=$((`sysctl -n hw.ncpu`+1));
+    fi
+
+  # clouds urls
+  - export QT_CLOUD="http://files.emlid.com/qgc/Qt"
+
+  # qt names
+  - export QT_FOLDER_NAME="Qt${QT_FULL_VERSION}-${SPEC}"
+  - export QT_PACKAGE_NAME="${QT_FOLDER_NAME}.tar.bz2"
+
+  - export QT_DIR="/tmp/${QT_FOLDER_NAME}/${SPEC}/"
+
+  # general paths
+  - export QT_QPA_PLATFORM_PLUGIN_PATH="${QT_DIR}/plugins"
+  - export QML2_IMPORT_PATH="${QT_DIR}/qml"
+  - export PATH="${QT_DIR}/bin:$PATH"
+
+
+install:
+  # Check for Qt cache
+  - if [ -z "$(ls -A ${CACHE_DIR} 2>&-)" ]; then
+        echo "Qt cache not found. Downloading from cloud..." &&
+        mkdir -p "${CACHE_DIR}" && cd "${CACHE_DIR}" &&
+        wget "${QT_CLOUD}/${QT_PACKAGE_NAME}" &&
+        cd -
+        ;
+    fi
+  - tar -jxf "${CACHE_DIR}/${QT_PACKAGE_NAME}" -C /tmp
+
+  # linux exports
+  - if [ "${SPEC}" = "${LINUX_SPEC}" ]; then
+        sudo apt-get update &&
+        sudo apt-get install g++-${GXX_VERSION} gcc-${GCC_VERSION} &&
+
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GXX_VERSION} 90 &&
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 90 &&
+
+        export CXX=g++-${GXX_VERSION} &&
+        export CC=gcc-${GCC_VERSION} &&
+        export DISPLAY=:99.0
+        ;
+    fi
+
+  - if [ "${SPEC}" = "${OSX_SPEC}" ]; then
+        brew update && brew install ccache
+        ;
+    fi
+
+  # print ccache stats
+  - ccache -s
+
+
+script:
+  # run qmake
+  - mkdir "${SHADOW_BUILD_DIR}" && cd "${SHADOW_BUILD_DIR}"
+  - qmake -r "${TRAVIS_BUILD_DIR}/devlib.pro" QMAKE_CXX='ccache $${QMAKE_CXX}' CONFIG+="${CONFIG}" -spec "${SPEC}"
+
+  # compile
+  - make -j$JOBS;
