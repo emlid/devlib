@@ -17,6 +17,8 @@ environment:
       Config: release
     - Build: 'Debug'
       Config: debug
+    - Build: 'Build with MT flag'
+      Config: MT_BUILD
 
 
 install:
