@@ -85,6 +85,8 @@ By default the project builds with ``devlib`` library and ``examples``
 
 + ``EXCLUDE_EXAMPLES_BUILD`` - skip ``examples`` build
 + ``ENABLE_HEADERS_COPY`` - ``devlib`` builds with public headers (will be located in ``include`` dir)
++ ``MT_BUILD`` - *Only for Windows 32-bit.* Build project with ``/MT`` flag. Default flag ``/MD``. see [references](https://msdn.microsoft.com/en-us/library/2kzt1wy3.aspx)
+
 
   Example:
 

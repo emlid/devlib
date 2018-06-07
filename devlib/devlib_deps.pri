@@ -1,6 +1,11 @@
 
-win32:LIBS += \
+win32 {
+    MT_BUILD {
+        QMAKE_CXXFLAGS_RELEASE += /MT
+    }
+    LIBS += \
         -lsetupAPI \
+}
 
 linux:LIBS += \
         -ludev \
