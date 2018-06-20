@@ -14,7 +14,8 @@ int main(int argc, char *argv[])
         qInfo() << "device" << '\n'
                 << "+ vid: " << device->vid() << '\n'
                 << "+ pid: " << device->pid() << '\n'
-                << "+ fsPath: " << device->filePath();
+                << "+ fsPath: " << device->filePath() << '\n'
+                << "+ usbPortPath: " << device->usbPortPath();
 
         qInfo() << "\n + mntpts:";
         for (auto const& mntpt : device->mountpoints()) {
