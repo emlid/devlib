@@ -151,10 +151,10 @@ std::vector<std::pair<QString, QString>> devlib::native::mntptsForPartition(QStr
 }
 
 
-std::vector<std::tuple<int, int, QString>>
+std::vector<std::tuple<int, int, QString, QString>>
     devlib::native::requestUsbDeviceList(void)
 {
-    auto storageDeviceList = std::vector<std::tuple<int, int, QString>>();
+    auto storageDeviceList = std::vector<std::tuple<int, int, QString, QString>>();
 
     std::unique_ptr<udev, decltype(&udev_unref)>
             manager(::udev_new(), &udev_unref);
@@ -180,12 +180,14 @@ std::vector<std::tuple<int, int, QString>>
 
         auto deviceVid = QString(::udev_device_get_property_value(device.get(), "ID_VENDOR_ID"));
         auto devicePid = QString(::udev_device_get_property_value(device.get(), "ID_MODEL_ID"));
+        auto serialNumber = QString(::udev_device_get_property_value(device.get(), "ID_SERIAL_SHORT"));
         auto diskPath  = QString(::udev_device_get_devnode(device.get()));
 
         auto base = 16;
         auto storageDevInfo = std::make_tuple(deviceVid.toInt(nullptr, base),
                                               devicePid.toInt(nullptr, base),
-                                              diskPath);
+                                              diskPath,
+                                              serialNumber);
         storageDeviceList.push_back(storageDevInfo);
     }
 
