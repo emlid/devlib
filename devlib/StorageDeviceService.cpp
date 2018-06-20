@@ -34,9 +34,9 @@ auto devlib::StorageDeviceService::getAvailableStorageDevices(void)
         };
 
     auto storageDeviceInfoFactory =
-        [partitionFactory, mntptFactory] (int vid, int pid, auto const& filePath) {
+        [partitionFactory, mntptFactory] (int vid, int pid, auto const& filePath, auto const& serialNumber) {
             return std::make_unique<impl::StorageDeviceInfoImpl>(
-                vid, pid, filePath, partitionFactory, mntptFactory
+                vid, pid, filePath, serialNumber, partitionFactory, mntptFactory
             );
         };
 
@@ -49,7 +49,8 @@ auto devlib::StorageDeviceService::getAvailableStorageDevices(void)
         [&storageDeviceInfoFactory] (auto const& deviceInfo) {
             return storageDeviceInfoFactory(std::get<0>(deviceInfo),
                                             std::get<1>(deviceInfo),
-                                            std::get<2>(deviceInfo));
+                                            std::get<2>(deviceInfo),
+                                            std::get<3>(deviceInfo));
         }
     );
 
