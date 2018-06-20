@@ -17,6 +17,7 @@ public:
     auto pid(void) const noexcept { return pid_core(); }
 
     auto filePath(void) const noexcept { return filePath_core(); }
+    auto usbPortPath(void) const noexcept { return usbPortPath_core(); }
     auto mountpoints(void) const { return mountpoints_core(); }
     auto partitions(void) const { return partitions_core(); }
 
@@ -25,6 +26,9 @@ private:
     virtual int pid_core(void) const noexcept = 0;
 
     virtual auto filePath_core(void) const noexcept
+        -> QString = 0;
+
+    virtual auto usbPortPath_core(void) const noexcept
         -> QString = 0;
 
     virtual auto mountpoints_core(void) const
