@@ -5,10 +5,12 @@
 devlib::impl::StorageDeviceInfoImpl::
     StorageDeviceInfoImpl(int vid, int pid,
                           QString const& filePath,
+                          QString const& usbPortPath,
                           PartitionFactory_t partitionFactory,
                           MountpointFactory_t mntptFactory)
     : _vid(vid), _pid(pid),
       _filePath(filePath),
+      _usbPortPath(usbPortPath),
       _partitionFactory(partitionFactory),
       _mountpointFactory(mntptFactory)
 { }
