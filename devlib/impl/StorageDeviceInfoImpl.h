@@ -24,7 +24,8 @@ class devlib::impl::StorageDeviceInfoImpl : public devlib::IStorageDeviceInfo
 {
 public:
     StorageDeviceInfoImpl(
-            int vid, int pid, QString const& filePath,
+            int vid, int pid,
+            QString const& filePath, QString const& usbPortPath,
             impl::PartitionFactory_t  partitionFactory,
             impl::MountpointFactory_t mntptFactory);
 
@@ -37,6 +38,9 @@ private:
     virtual auto filePath_core(void) const noexcept
         -> QString  override { return _filePath; }
 
+    auto usbPortPath_core(void) const noexcept
+        -> QString  override { return _usbPortPath; }
+
     virtual auto mountpoints_core(void) const
         -> std::vector<std::unique_ptr<IMountpoint>> override;
 
@@ -44,7 +48,7 @@ private:
         -> std::vector<std::unique_ptr<IPartition>> override;
 
     int _vid, _pid;
-    QString _filePath;
+    QString _filePath, _usbPortPath;
     impl::PartitionFactory_t  _partitionFactory;
     impl::MountpointFactory_t _mountpointFactory;
 };
