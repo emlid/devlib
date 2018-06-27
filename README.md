@@ -12,6 +12,7 @@
 ## General functions
 
 + Get VID and PID of storage device
++ Get serial number of storage device (Windows and Linux only)
 + Get mountpoints list (paths)
 + Get partitions list (paths and labels)
 + Get relations between partitions and mountpoints
