@@ -318,10 +318,10 @@ std::vector<std::pair<QString, QString>>
 }
 
 
-std::vector<std::tuple<int, int, QString>>
+std::vector<std::tuple<int, int, QString, QString>>
     devlib::native::requestUsbDeviceList(void)
 {
-    auto devicesList = std::vector<std::tuple<int, int, QString>>();
+    auto devicesList = std::vector<std::tuple<int, int, QString, QString>>();
 
     winutil::foreachDevices(GUID_DEVINTERFACE_USB_DEVICE,
         [&devicesList] (PSP_DEVICE_INTERFACE_DETAIL_DATA detailData) -> void {
@@ -337,9 +337,10 @@ std::vector<std::tuple<int, int, QString>>
             }
 
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
+            auto serialNumber = winutil::extractSerialNumber(devicePath);
 
             devicesList.emplace_back(
-                devInfo.vid, devInfo.pid, deviceFilePath
+                devInfo.vid, devInfo.pid, deviceFilePath, serialNumber
             );
         }
     );
