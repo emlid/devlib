@@ -95,20 +95,21 @@ namespace winutil {
     using DeviceHandler = std::function<void(struct DeviceWinInfo)>;
 
 
-    static auto extractDevInfo(QString const& devicePath) -> DevVidPidInfo {
+    static auto extractDevPidVidInfo(QString const& devicePath) -> DevVidPidInfo {
         auto extract = [&devicePath] (QString const& key) {
             return QString(devicePath)
                   .replace(QRegularExpression(".*" + key + "_(.{4}).*"), "0x\\1")
                   .toInt(Q_NULLPTR, 16);
         };
 
-        return {extract("vid"), extract("pid")};
+        return {extract("VID"), extract("PID")};
     }
 
 
     static auto extractSerialNumber(QString const& devicePath) {
         return QString(devicePath)
-            .replace(QRegularExpression(".*#(.*)#{.*"), "\\1");
+                .split("\\")[2]
+                .toLower();
     }
 
 
@@ -403,7 +404,7 @@ std::vector<std::tuple<int, int, QString>>
         [&devicesList] (struct winutil::DeviceWinInfo deviceInfo) -> void {
             QString devicePath = deviceInfo.instanceId;
 
-            auto devInfo  = winutil::extractDevInfo(devicePath);
+            auto devInfo  = winutil::extractDevPidVidInfo(devicePath);
             auto driveNum = winutil::driveNumber(
                 winutil::deviceDiskPath(devicePath)
             );
