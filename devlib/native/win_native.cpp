@@ -81,12 +81,18 @@ namespace winutil {
     }
 
 
-    struct DevInfo { int vid, pid; };
+    struct DevVidPidInfo { int vid, pid; };
+
+    struct DeviceWinInfo
+    {
+        QString instanceId;
+        QString containerId;
+    };
 
     using DeviceHandler = std::function<void(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
 
 
-    static auto extractDevInfo(QString const& devicePath) -> DevInfo {
+    static auto extractDevInfo(QString const& devicePath) -> DevVidPidInfo {
         auto extract = [&devicePath] (QString const& key) {
             return QString(devicePath)
                   .replace(QRegularExpression(".*" + key + "_(.{4}).*"), "0x\\1")
