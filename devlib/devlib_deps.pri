@@ -1,6 +1,7 @@
 
 win32:LIBS += \
         -lsetupAPI \
+        -lOle32 \
 
 linux:LIBS += \
         -ludev \
