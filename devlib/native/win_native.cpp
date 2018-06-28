@@ -89,7 +89,8 @@ namespace winutil {
         QString containerId;
     };
 
-    using DeviceHandler = std::function<void(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
+    using DeviceInterfaceHandler = std::function<void(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
+    using DeviceHandler = std::function<void(struct DeviceWinInfo)>;
 
 
     static auto extractDevInfo(QString const& devicePath) -> DevVidPidInfo {
@@ -137,7 +138,7 @@ namespace winutil {
     }
 
 
-    static bool foreachDevices(GUID guid, DeviceHandler deviceHandler) {
+    static bool foreachDevices(GUID guid, DeviceInterfaceHandler deviceHandler) {
         SP_DEVINFO_DATA devInfoData;
         devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
