@@ -399,9 +399,9 @@ std::vector<std::tuple<int, int, QString>>
 {
     auto devicesList = std::vector<std::tuple<int, int, QString>>();
 
-    winutil::foreachDevicesInterface(GUID_DEVINTERFACE_USB_DEVICE,
-        [&devicesList] (PSP_DEVICE_INTERFACE_DETAIL_DATA detailData) -> void {
-            QString devicePath = QString::fromWCharArray(detailData->DevicePath);
+    winutil::foreachDevices(TEXT("USB"),
+        [&devicesList] (struct winutil::DeviceWinInfo deviceInfo) -> void {
+            QString devicePath = deviceInfo.instanceId;
 
             auto devInfo  = winutil::extractDevInfo(devicePath);
             auto driveNum = winutil::driveNumber(
@@ -409,7 +409,11 @@ std::vector<std::tuple<int, int, QString>>
             );
 
             if (driveNum == -1) {
-                return;
+                driveNum = winutil::getDriveNumberUsingContainerId(deviceInfo.containerId);
+
+                if (driveNum == -1) {
+                    return;
+                }
             }
 
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
