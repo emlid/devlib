@@ -269,6 +269,19 @@ namespace winutil {
     }
 
 
+    static auto getDriveNumberUsingContainerId(QString const& devContainerId) {
+        int driveNum;
+        foreachDevices(TEXT("USBSTOR"),
+            [&driveNum, &devContainerId] (struct winutil::DeviceWinInfo deviceInfo) -> void {
+                if (devContainerId == deviceInfo.containerId)
+                    driveNum = driveNumber(
+                        deviceDiskPath(deviceInfo.instanceId)
+                    );
+        });
+       return driveNum;
+    }
+
+
     struct WinHandle : public virtual devlib::native::LockHandle,
                        public virtual devlib::native::io::FileHandle
     {
