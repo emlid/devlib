@@ -4,6 +4,8 @@
 #include <tchar.h>
 #include <usbiodef.h>
 #include <windows.h>
+#include <devpkey.h>
+#include <cfgmgr32.h>   // for MAX_DEVICE_ID_LEN and CM_Get_Device_ID
 #include <SetupAPI.h>
 #include <fcntl.h>
 #include <io.h>
@@ -138,7 +140,7 @@ namespace winutil {
     }
 
 
-    static bool foreachDevices(GUID guid, DeviceInterfaceHandler deviceHandler) {
+    static bool foreachDevicesInterface(GUID guid, DeviceInterfaceHandler deviceHandler) {
         SP_DEVINFO_DATA devInfoData;
         devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
@@ -196,11 +198,65 @@ namespace winutil {
     }
 
 
+    static bool foreachDevices(LPCTSTR pszEnumerator, DeviceHandler handler) {
+        DEVPROPTYPE ulPropertyType;
+        CONFIGRET status;
+        HDEVINFO hDevInfo;
+        SP_DEVINFO_DATA DeviceInfoData;
+        WCHAR szDeviceInstanceID [MAX_DEVICE_ID_LEN];
+        WCHAR szDesc[1024];
+        WCHAR szBuffer[4096];
+
+        // List all connected USB devices
+        hDevInfo = SetupDiGetClassDevs (nullptr, pszEnumerator, NULL,
+                                        DIGCF_ALLCLASSES | DIGCF_PRESENT);
+        if (hDevInfo == INVALID_HANDLE_VALUE)
+            return false;
+
+        // Find the ones that are driverless
+        for (unsigned i = 0; ; i++)  {
+            DeviceInfoData.cbSize = sizeof (DeviceInfoData);
+            if (!SetupDiEnumDeviceInfo(hDevInfo, i, &DeviceInfoData))
+                break;
+
+            struct DeviceWinInfo devInfo;
+
+            status = CM_Get_Device_ID(DeviceInfoData.DevInst, szDeviceInstanceID , MAX_PATH, 0);
+            if (status != CR_SUCCESS)
+                continue;
+
+            DWORD dwSize, dwPropertyRegDataType;
+            if (SetupDiGetDeviceRegistryProperty (hDevInfo, &DeviceInfoData, SPDRP_DEVICEDESC,
+                                                  &dwPropertyRegDataType, (BYTE*)szDesc,
+                                                  sizeof(szDesc),   // The size, in bytes
+                                                  &dwSize))
+                if ( !QString::fromWCharArray(szDesc).contains("Mass Storage")
+                        && (wcscmp(pszEnumerator, L"USB") == 0))
+                    continue;
+
+            devInfo.instanceId = QString::fromWCharArray(szDeviceInstanceID);
+
+            if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_BusReportedDeviceDesc,
+                                                                              &ulPropertyType, (BYTE*)szBuffer, sizeof(szBuffer), nullptr, 0)) {
+                if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_ContainerId,
+                                                  &ulPropertyType, (BYTE*)szDesc, sizeof(szDesc), nullptr, 0)) {
+                    StringFromGUID2((REFGUID)szDesc, szBuffer, sizeof(szBuffer)/sizeof(szBuffer[0]) /*Array size*/);
+                    devInfo.containerId = QString::fromWCharArray(szBuffer);
+                }
+            }
+
+            handler(devInfo);
+        }
+
+        return true;
+    }
+
+
     static auto deviceDiskPath(QString const& devicePath) {
         auto usbDeviceSerialNumber = extractSerialNumber(devicePath);
         auto deviceDiskPath = QString();
 
-        foreachDevices(GUID_DEVINTERFACE_DISK, [&deviceDiskPath, &usbDeviceSerialNumber]
+        foreachDevicesInterface(GUID_DEVINTERFACE_DISK, [&deviceDiskPath, &usbDeviceSerialNumber]
             (auto detailData) -> void {
                 auto path = QString::fromWCharArray(detailData->DevicePath);
                 if (!path.contains(usbDeviceSerialNumber)) return;
@@ -330,7 +386,7 @@ std::vector<std::tuple<int, int, QString>>
 {
     auto devicesList = std::vector<std::tuple<int, int, QString>>();
 
-    winutil::foreachDevices(GUID_DEVINTERFACE_USB_DEVICE,
+    winutil::foreachDevicesInterface(GUID_DEVINTERFACE_USB_DEVICE,
         [&devicesList] (PSP_DEVICE_INTERFACE_DETAIL_DATA detailData) -> void {
             QString devicePath = QString::fromWCharArray(detailData->DevicePath);
 
