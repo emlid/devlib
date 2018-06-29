@@ -89,6 +89,7 @@ namespace winutil {
     {
         QString instanceId;
         QString containerId;
+        QString locationPath;
     };
 
     using DeviceInterfaceHandler = std::function<void(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
@@ -110,6 +111,22 @@ namespace winutil {
         return QString(devicePath)
                 .split("\\")[2]
                 .toLower();
+    }
+
+
+    static auto extractUsbPortPath(QString const& locationPath) {
+        QString ports = "";
+        QRegExp usbPort("USB\\((\\d+)");
+        int pos = 0;
+        while ((pos = usbPort.indexIn(locationPath, pos)) != -1) {
+            ports += QString(".") + usbPort.cap(1);
+            pos += usbPort.matchedLength();
+        }
+
+        QString hub = QString(locationPath).replace(QRegularExpression(".*USBROOT\\((\\d+).*"), "\\1");
+        hub = QString::number(hub.toInt() + 1);
+
+        return ports.replace(QRegularExpression("^\\."), hub + "-");
     }
 
 
@@ -243,6 +260,10 @@ namespace winutil {
                                                   &ulPropertyType, (BYTE*)szDesc, sizeof(szDesc), nullptr, 0)) {
                     StringFromGUID2((REFGUID)szDesc, szBuffer, sizeof(szBuffer)/sizeof(szBuffer[0]) /*Array size*/);
                     devInfo.containerId = QString::fromWCharArray(szBuffer);
+                }
+                if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_LocationPaths,
+                                                  &ulPropertyType, (BYTE*)szBuffer, sizeof(szBuffer), nullptr, 0)) {
+                    devInfo.locationPath = QString::fromWCharArray(szBuffer);
                 }
             }
 
@@ -395,10 +416,10 @@ std::vector<std::pair<QString, QString>>
 }
 
 
-std::vector<std::tuple<int, int, QString>>
+std::vector<std::tuple<int, int, QString, QString>>
     devlib::native::requestUsbDeviceList(void)
 {
-    auto devicesList = std::vector<std::tuple<int, int, QString>>();
+    auto devicesList = std::vector<std::tuple<int, int, QString, QString>>();
 
     winutil::foreachDevices(TEXT("USB"),
         [&devicesList] (struct winutil::DeviceWinInfo deviceInfo) -> void {
@@ -418,9 +439,10 @@ std::vector<std::tuple<int, int, QString>>
             }
 
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
+            auto usbPortPath = winutil::extractUsbPortPath(deviceInfo.locationPath);
 
             devicesList.emplace_back(
-                devInfo.vid, devInfo.pid, deviceFilePath
+                devInfo.vid, devInfo.pid, deviceFilePath, usbPortPath
             );
         }
     );
