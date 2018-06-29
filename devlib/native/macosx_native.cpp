@@ -206,9 +206,9 @@ auto devlib::native::devicePartitions(QString const& devicePath)
 
 
 auto devlib::native::requestUsbDeviceList(void)
-    -> std::vector<std::tuple<int, int, QString>>
+    -> std::vector<std::tuple<int, int, QString, QString>>
 {
-    std::vector<std::tuple<int, int, QString>> devlist;
+    std::vector<std::tuple<int, int, QString, QString>> devlist;
 
     mach_port_t masterPort;
     auto result = ::IOMasterPort(MACH_PORT_NULL, &masterPort);
@@ -259,7 +259,8 @@ auto devlib::native::requestUsbDeviceList(void)
         ::CFNumberGetValue(vidRef, kCFNumberSInt32Type, &vid);
         ::CFNumberGetValue(pidRef, kCFNumberSInt32Type, &pid);
 
-        devlist.push_back(std::make_tuple(vid, pid, QString("/dev/%1").arg(bsdName)));
+        //usbPortPath is not yet supported. Therefore LocationPortPath is None
+        devlist.push_back(std::make_tuple(vid, pid, QString("/dev/%1").arg(bsdName), QString("None")));
     }
 
     return devlist;
