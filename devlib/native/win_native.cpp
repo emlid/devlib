@@ -83,14 +83,14 @@ namespace winutil {
     }
 
 
-    struct DevVidPidInfo { int vid, pid; };
+    struct DevId { int vid, pid; };
 
     struct DevInfo {
-        DevVidPidInfo devId;
+        DevId devId;
         QString usbPortPath;
     };
 
-    struct DeviceWinInfo
+    struct DeviceProperties
     {
         QString instanceId;
         QString containerId;
@@ -98,12 +98,12 @@ namespace winutil {
     };
 
     using DeviceInterfaceHandler = std::function<void(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
-    using DeviceHandler = std::function<void(struct DeviceWinInfo)>;
+    using DeviceHandler = std::function<void(DeviceProperties)>;
 
 
-    static auto extractDevPidVidInfo(QString const& devicePath) -> DevVidPidInfo {
-        auto extract = [&devicePath] (QString const& key) {
-            return QString(devicePath)
+    static auto extractDevPidVidInfo(QString const& instanceId) -> DevId {
+        auto extract = [&instanceId] (QString const& key) {
+            return QString(instanceId)
                   .replace(QRegularExpression(".*" + key + "_(.{4}).*"), "0x\\1")
                   .toInt(Q_NULLPTR, 16);
         };
@@ -112,8 +112,8 @@ namespace winutil {
     }
 
 
-    static auto extractSerialNumber(QString const& devicePath) {
-        return QString(devicePath)
+    static auto extractSerialNumber(QString const& instanceId) {
+        return QString(instanceId)
                 .split("\\")[2]
                 .toLower();
     }
@@ -242,7 +242,7 @@ namespace winutil {
             if (!SetupDiEnumDeviceInfo(hDevInfo, i, &DeviceInfoData))
                 break;
 
-            struct DeviceWinInfo devInfo;
+            DeviceProperties devInfo;
 
             status = CM_Get_Device_ID(DeviceInfoData.DevInst, szDeviceInstanceID , MAX_PATH, 0);
             if (status != CR_SUCCESS)
@@ -270,8 +270,8 @@ namespace winutil {
     }
 
 
-    static auto deviceDiskPath(QString const& devicePath) {
-        auto usbDeviceSerialNumber = extractSerialNumber(devicePath);
+    static auto deviceDiskPath(QString const& instanceId) {
+        auto usbDeviceSerialNumber = extractSerialNumber(instanceId);
         auto deviceDiskPath = QString();
 
         foreachDevicesInterface(GUID_DEVINTERFACE_DISK, [&deviceDiskPath, &usbDeviceSerialNumber]
@@ -305,12 +305,10 @@ namespace winutil {
     static auto getDevInfo(const QString containerId) -> DevInfo {
         DevInfo devInfo;
         foreachDevices(TEXT("USB"),
-            [&containerId, &devInfo] (struct DeviceWinInfo deviceInfo) -> void {
-                if (deviceInfo.containerId == containerId) {
-                    QString devicePath = deviceInfo.instanceId;
-
-                    devInfo.devId = extractDevPidVidInfo(devicePath);
-                    devInfo.usbPortPath = extractUsbPortPath(deviceInfo.locationPath);
+            [&containerId, &devInfo] (DeviceProperties deviceProperties) -> void {
+                if (deviceProperties.containerId == containerId) {
+                    devInfo.devId = extractDevPidVidInfo(deviceProperties.instanceId);
+                    devInfo.usbPortPath = extractUsbPortPath(deviceProperties.locationPath);
                 }
             }
         );
@@ -421,18 +419,18 @@ std::vector<std::tuple<int, int, QString, QString>>
     auto devicesList = std::vector<std::tuple<int, int, QString, QString>>();
 
     winutil::foreachDevices(TEXT("USBSTOR"),
-        [&devicesList] (struct winutil::DeviceWinInfo deviceInfo) -> void {
-            QString devicePath = deviceInfo.instanceId;
+        [&devicesList] (winutil::DeviceProperties deviceProperties) -> void {
+            QString deviceInstanceId = deviceProperties.instanceId;
 
             auto driveNum = winutil::driveNumber(
-                winutil::deviceDiskPath(devicePath)
+                winutil::deviceDiskPath(deviceInstanceId)
             );
 
             if (driveNum == -1) {
                 return;
             }
 
-            auto devInfo = winutil::getDevInfo(deviceInfo.containerId);
+            auto devInfo = winutil::getDevInfo(deviceProperties.containerId);
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
 
             devicesList.emplace_back(
