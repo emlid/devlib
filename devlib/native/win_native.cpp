@@ -85,6 +85,11 @@ namespace winutil {
 
     struct DevVidPidInfo { int vid, pid; };
 
+    struct DevInfo {
+        DevVidPidInfo devId;
+        QString usbPortPath;
+    };
+
     struct DeviceWinInfo
     {
         QString instanceId;
@@ -243,15 +248,6 @@ namespace winutil {
             if (status != CR_SUCCESS)
                 continue;
 
-            DWORD dwSize, dwPropertyRegDataType;
-            if (SetupDiGetDeviceRegistryProperty (hDevInfo, &DeviceInfoData, SPDRP_DEVICEDESC,
-                                                  &dwPropertyRegDataType, (BYTE*)szDesc,
-                                                  sizeof(szDesc),   // The size, in bytes
-                                                  &dwSize))
-                if ( !QString::fromWCharArray(szDesc).contains("Mass Storage")
-                        && (wcscmp(pszEnumerator, L"USB") == 0))
-                    continue;
-
             devInfo.instanceId = QString::fromWCharArray(szDeviceInstanceID);
 
             if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_BusReportedDeviceDesc,
@@ -291,19 +287,6 @@ namespace winutil {
     }
 
 
-    static auto getDriveNumberUsingContainerId(QString const& devContainerId) {
-        int driveNum;
-        foreachDevices(TEXT("USBSTOR"),
-            [&driveNum, &devContainerId] (struct winutil::DeviceWinInfo deviceInfo) -> void {
-                if (devContainerId == deviceInfo.containerId)
-                    driveNum = driveNumber(
-                        deviceDiskPath(deviceInfo.instanceId)
-                    );
-        });
-       return driveNum;
-    }
-
-
     struct WinHandle : public virtual devlib::native::LockHandle,
                        public virtual devlib::native::io::FileHandle
     {
@@ -316,6 +299,22 @@ namespace winutil {
 
     static auto makeHandle(HANDLE handle) {
         return std::make_unique<WinHandle>(handle);
+    }
+
+
+    static auto getDevInfo(const QString containerId) -> DevInfo {
+        DevInfo devInfo;
+        foreachDevices(TEXT("USB"),
+            [&containerId, &devInfo] (struct DeviceWinInfo deviceInfo) -> void {
+                if (deviceInfo.containerId == containerId) {
+                    QString devicePath = deviceInfo.instanceId;
+
+                    devInfo.devId = extractDevPidVidInfo(devicePath);
+                    devInfo.usbPortPath = extractUsbPortPath(deviceInfo.locationPath);
+                }
+            }
+        );
+       return devInfo;
     }
 }
 
@@ -421,28 +420,26 @@ std::vector<std::tuple<int, int, QString, QString>>
 {
     auto devicesList = std::vector<std::tuple<int, int, QString, QString>>();
 
-    winutil::foreachDevices(TEXT("USB"),
+    winutil::foreachDevices(TEXT("USBSTOR"),
         [&devicesList] (struct winutil::DeviceWinInfo deviceInfo) -> void {
             QString devicePath = deviceInfo.instanceId;
 
-            auto devInfo  = winutil::extractDevPidVidInfo(devicePath);
             auto driveNum = winutil::driveNumber(
                 winutil::deviceDiskPath(devicePath)
             );
 
             if (driveNum == -1) {
-                driveNum = winutil::getDriveNumberUsingContainerId(deviceInfo.containerId);
-
-                if (driveNum == -1) {
-                    return;
-                }
+                return;
             }
 
+            auto devInfo = winutil::getDevInfo(deviceInfo.containerId);
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
-            auto usbPortPath = winutil::extractUsbPortPath(deviceInfo.locationPath);
 
             devicesList.emplace_back(
-                devInfo.vid, devInfo.pid, deviceFilePath, usbPortPath
+                devInfo.devId.vid,
+                devInfo.devId.pid,
+                deviceFilePath,
+                devInfo.usbPortPath
             );
         }
     );
