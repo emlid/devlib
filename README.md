@@ -80,11 +80,11 @@ The project is written on ```C++14```
 
 ## Build configuration
 
-By default the project builds with ``devlib`` library and ``examples``
+By default the project builds only ``devlib`` library
 
 ### Options
 
-+ ``EXCLUDE_EXAMPLES_BUILD`` - skip ``examples`` build
++ ``DEVLIB_INCLUDE_EXAMPLES`` - enable ``examples`` build
 + ``ENABLE_HEADERS_COPY`` - ``devlib`` builds with public headers (will be located in ``include`` dir)
 
   Example:

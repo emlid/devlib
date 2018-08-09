@@ -4,7 +4,7 @@ SUBDIRS += \
    devlib \
 
 
-!EXCLUDE_EXAMPLES_BUILD {
+DEVLIB_INCLUDE_EXAMPLES {
    SUBDIRS += examples
    examples.depends = devlib
 }
