@@ -17,7 +17,12 @@ bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode)
     _mntptsLocks.clear();
 
     for (auto const& mntpt : mntpts) {
-        _mntptsLocks.push_back(mntpt->umount());
+        auto mntptLock = mntpt->umount();
+        if (mntptLock->locked()){
+            _mntptsLocks.push_back(std::move(mntptLock));
+        } else {
+            return false;
+        }
     }
 
     // second: open file handle
