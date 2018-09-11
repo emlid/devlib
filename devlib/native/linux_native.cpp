@@ -273,6 +273,7 @@ auto devlib::native::io::open(char const* filename)
         linutil::errnoWarning(__PRETTY_FUNCTION__,
                       QString("can not open file ").append(filename),
                       errnoCache);
+        return nullptr;
     }
 
     return linutil::makeFileHandle(fd);
