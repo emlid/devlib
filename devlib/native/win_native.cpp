@@ -306,7 +306,8 @@ namespace winutil {
         DevInfo devInfo;
         foreachDevices(TEXT("USB"),
             [&containerId, &devInfo] (DeviceProperties deviceProperties) -> void {
-                if (deviceProperties.containerId == containerId) {
+                if (deviceProperties.containerId == containerId
+                        && !deviceProperties.instanceId.contains("MI_")) {
                     devInfo.devId = extractDevPidVidInfo(deviceProperties.instanceId);
                     devInfo.usbPortPath = extractUsbPortPath(deviceProperties.locationPath);
                 }
