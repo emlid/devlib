@@ -233,22 +233,29 @@ namespace winutil {
         // List all connected USB devices
         hDevInfo = SetupDiGetClassDevs (nullptr, pszEnumerator, NULL,
                                         DIGCF_ALLCLASSES | DIGCF_PRESENT);
-        if (hDevInfo == INVALID_HANDLE_VALUE)
+        if (hDevInfo == INVALID_HANDLE_VALUE) {
+            qDebug() << "Unable to get list of connected devices";
             return false;
+        }
 
         // Find the ones that are driverless
         for (unsigned i = 0; ; i++)  {
             DeviceInfoData.cbSize = sizeof (DeviceInfoData);
-            if (!SetupDiEnumDeviceInfo(hDevInfo, i, &DeviceInfoData))
+            if (!SetupDiEnumDeviceInfo(hDevInfo, i, &DeviceInfoData)) {
+                qDebug() << "Devices iteration is complete";
                 break;
+            }
 
             DeviceProperties devInfo;
 
             status = CM_Get_Device_ID(DeviceInfoData.DevInst, szDeviceInstanceID , MAX_PATH, 0);
-            if (status != CR_SUCCESS)
+            if (status != CR_SUCCESS) {
+                qDebug() << "Unable to get device 'InstanceID'. Skip device";
                 continue;
+            }
 
             devInfo.instanceId = QString::fromWCharArray(szDeviceInstanceID);
+            qDebug() << "Device 'InstanceID':" << devInfo.instanceId;
 
             if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_BusReportedDeviceDesc,
                                                                               &ulPropertyType, (BYTE*)szBuffer, sizeof(szBuffer), nullptr, 0)) {
@@ -256,14 +263,23 @@ namespace winutil {
                                                   &ulPropertyType, (BYTE*)szDesc, sizeof(szDesc), nullptr, 0)) {
                     StringFromGUID2((REFGUID)szDesc, szBuffer, sizeof(szBuffer)/sizeof(szBuffer[0]) /*Array size*/);
                     devInfo.containerId = QString::fromWCharArray(szBuffer);
+                    qDebug() << "Device 'ContainerId':" << devInfo.containerId;
+                } else {
+                    qDebug() << "Unable to get device 'ContainerId'";
                 }
                 if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_LocationPaths,
                                                   &ulPropertyType, (BYTE*)szBuffer, sizeof(szBuffer), nullptr, 0)) {
                     devInfo.locationPath = QString::fromWCharArray(szBuffer);
+                    qDebug() << "Device 'LocationPaths':" << devInfo.locationPath;
+                } else {
+                    qDebug() << "Unable to get device 'LocationPaths'";
                 }
+            } else {
+                qDebug() << "Unable to get device 'BusReportedDeviceDesc'";
             }
 
             handler(devInfo);
+            qDebug();
         }
 
         return true;
@@ -304,16 +320,20 @@ namespace winutil {
 
     static auto getDevInfo(const QString containerId) -> DevInfo {
         DevInfo devInfo;
+        qDebug() << "USB filter iteration: BEGIN";
         foreachDevices(TEXT("USB"),
             [&containerId, &devInfo] (DeviceProperties deviceProperties) -> void {
                 if (deviceProperties.containerId == containerId
                         && !deviceProperties.instanceId.contains("MI_")) {
                     devInfo.devId = extractDevPidVidInfo(deviceProperties.instanceId);
                     devInfo.usbPortPath = extractUsbPortPath(deviceProperties.locationPath);
+                    qDebug() << "ContainerId matched";
+                    qDebug() << "device instanceId:" << deviceProperties.instanceId << ", port_path:" << devInfo.usbPortPath;
                 }
             }
         );
-       return devInfo;
+        qDebug() << "USB filter iteration: END";
+        return devInfo;
     }
 }
 
@@ -422,15 +442,16 @@ std::vector<std::tuple<int, int, QString, QString>>
     winutil::foreachDevices(TEXT("USBSTOR"),
         [&devicesList] (winutil::DeviceProperties deviceProperties) -> void {
             QString deviceInstanceId = deviceProperties.instanceId;
-
             auto driveNum = winutil::driveNumber(
                 winutil::deviceDiskPath(deviceInstanceId)
             );
+            qDebug() << "device driveNum:" << driveNum;
 
             if (driveNum == -1) {
                 return;
             }
 
+            qDebug() << "Getting device info by 'ContainerId':" << deviceProperties.containerId;
             auto devInfo = winutil::getDevInfo(deviceProperties.containerId);
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
 
@@ -442,6 +463,15 @@ std::vector<std::tuple<int, int, QString, QString>>
             );
         }
     );
+
+    qDebug() << "DevicesList:";
+    for (auto& device : devicesList) {
+        qDebug() << "vid:" << std::get<0>(device)
+                << ", pid:" << std::get<1>(device)
+                << ", filePath:" << std::get<2>(device)
+                << ", portPath:" << std:: get<3>(device)
+                << "\n";
+    }
 
     return devicesList;
 }
