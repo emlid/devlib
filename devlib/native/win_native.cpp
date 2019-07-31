@@ -333,6 +333,79 @@ namespace winutil {
     }
 
 
+    static auto findBusNumber(QString const& instanceId) {
+        int error;
+        static auto rootHubsBusses = initialize_root_busses(error);
+        qDebug() << "Busses" << rootHubsBusses;
+
+        DEVPROPTYPE ulPropertyType;
+        CONFIGRET status;
+        HDEVINFO hDevInfo;
+        SP_DEVINFO_DATA DeviceInfoData;
+        WCHAR szDeviceInstanceID [MAX_DEVICE_ID_LEN];
+        WCHAR szDesc[1024];
+        WCHAR szBuffer[4096];
+
+        // List all connected USB devices
+        hDevInfo = SetupDiGetClassDevs (nullptr, nullptr, NULL,
+                                        DIGCF_ALLCLASSES | DIGCF_PRESENT);
+        if (hDevInfo == INVALID_HANDLE_VALUE) {
+            qDebug() << "Unable to get list of connected devices";
+//            return false;
+        }
+
+        // Find the ones that are driverless
+        for (unsigned i = 0; ; i++)  {
+            DeviceInfoData.cbSize = sizeof (DeviceInfoData);
+            if (!SetupDiEnumDeviceInfo(hDevInfo, i, &DeviceInfoData)) {
+                qDebug() << "Devices iteration is complete";
+                break;
+            }
+
+            DeviceProperties devInfo;
+
+            status = CM_Get_Device_ID(DeviceInfoData.DevInst, szDeviceInstanceID , MAX_PATH, 0);
+            if (status != CR_SUCCESS) {
+                qDebug() << "Unable to get device 'InstanceID'. Skip device";
+                continue;
+            }
+            if (instanceId != QString::fromWCharArray(szDeviceInstanceID)) {
+                continue;
+            }
+            qDebug() << "Target Instance ID was find";
+
+            DEVINST devDevInst = DeviceInfoData.DevInst;
+            DEVINST parentDevInst;
+            while (1) {
+
+                if (CM_Get_Parent(&parentDevInst, devDevInst, 0) != CR_SUCCESS)
+                    break;
+                if (CM_Get_Device_ID(parentDevInst, szDeviceInstanceID , MAX_PATH, 0) != CR_SUCCESS) {
+                    qDebug() << "Unable to get device 'InstanceID'. continue";
+                    continue;
+                }
+
+                devDevInst = parentDevInst;
+                auto parentInstanceId = QString::fromWCharArray(szDeviceInstanceID);
+                qDebug() << "parentInstanceId" << parentInstanceId;
+                if (rootHubsBusses.find(parentInstanceId) != rootHubsBusses.end()) {
+                    return QString::number(rootHubsBusses[parentInstanceId]);
+                }
+            }
+        }
+        qDebug() << "Return default '1'";
+        return QString{"1"};
+    }
+
+
+    static auto getUsbPortPath(DeviceProperties const& deviceProperties) {
+        auto ports = extractUSBPorts(deviceProperties.locationPath);
+        qDebug() << "PORTS:" << ports;
+        QString busNumber = findBusNumber(deviceProperties.instanceId);
+        return ports.replace(QRegularExpression("^\\."), busNumber + "-");
+     }
+
+
     static auto driveNumber(QString const& physicalDriveName) {
         STORAGE_DEVICE_NUMBER deviceNumber = {0};
 
