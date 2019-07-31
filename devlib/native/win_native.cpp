@@ -124,6 +124,7 @@ namespace winutil {
     #define MAX_PATH_LENGTH 128
 
 
+    // Was copied from libusb
     static char *sanitize_path(const char *path)
     {
         const char root_prefix[] = {'\\', '\\', '.', '\\'};
@@ -174,15 +175,12 @@ namespace winutil {
         for (;;) {
             if (!SetupDiEnumDeviceInfo(dev_info, *_index, dev_info_data)) {
                 if (GetLastError() != ERROR_NO_MORE_ITEMS) {
-    //                usbi_err(ctx, "Could not obtain device info data for %s index %u: %s",
-    //                    guid_to_string(guid), *_index, windows_error_str(0));
-    //                return LIBUSB_ERROR_OTHER;
                     qDebug() << "Could not obtain device info data for:" << _index;
+                    //return LIBUSB_ERROR_OTHER;
                     return -1;
                 }
 
                 // No more devices
-    //            return LIBUSB_SUCCESS;
                 return 0;
             }
 
@@ -193,10 +191,8 @@ namespace winutil {
                 break;
 
             if (GetLastError() != ERROR_NO_MORE_ITEMS) {
-    //            usbi_err(ctx, "Could not obtain interface data for %s devInst %X: %s",
-    //                guid_to_string(guid), dev_info_data->DevInst, windows_error_str(0));
-    //            return LIBUSB_ERROR_OTHER;
                 qDebug() << "Could not obtain interface data for" << _index << "devInst" << dev_info_data->DevInst;
+                //return LIBUSB_ERROR_OTHER;
                 return -1;
             }
 
@@ -207,36 +203,29 @@ namespace winutil {
         if (!SetupDiGetDeviceInterfaceDetailA(dev_info, &dev_interface_data, NULL, 0, &size, NULL)) {
             // The dummy call should fail with ERROR_INSUFFICIENT_BUFFER
             if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-    //            usbi_err(ctx, "could not access interface data (dummy) for %s devInst %X: %s",
-    //                guid_to_string(guid), dev_info_data->DevInst, windows_error_str(0));
-    //            return LIBUSB_ERROR_OTHER;
                 qDebug() << "could not access interface data (dummy) for" << _index << "devInst" << dev_info_data->DevInst;
+                //return LIBUSB_ERROR_OTHER;
                 return -1;
             }
         } else {
-    //        usbi_err(ctx, "program assertion failed - http://msdn.microsoft.com/en-us/library/ms792901.aspx is wrong");
-    //        return LIBUSB_ERROR_OTHER;
             qDebug() << "program assertion failed - http://msdn.microsoft.com/en-us/library/ms792901.aspx is wrong";
+            //return LIBUSB_ERROR_OTHER;
             return -1;
         }
 
         dev_interface_details = (PSP_DEVICE_INTERFACE_DETAIL_DATA_A)malloc(size);
         if (dev_interface_details == NULL) {
-    //        usbi_err(ctx, "could not allocate interface data for %s devInst %X",
-    //            guid_to_string(guid), dev_info_data->DevInst);
-    //        return LIBUSB_ERROR_NO_MEM;
             qDebug() << "could not allocate interface data for" << _index << "devInst" << dev_info_data->DevInst;
+            //return LIBUSB_ERROR_NO_MEM;
             return -2;
         }
 
         dev_interface_details->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_A);
         if (!SetupDiGetDeviceInterfaceDetailA(dev_info, &dev_interface_data,
             dev_interface_details, size, NULL, NULL)) {
-    //        usbi_err(ctx, "could not access interface data (actual) for %s devInst %X: %s",
-    //            guid_to_string(guid), dev_info_data->DevInst, windows_error_str(0));
             free(dev_interface_details);
             qDebug() << "could not access interface data (actual) for" << _index << "devInst" << dev_info_data->DevInst;
-    //        return LIBUSB_ERROR_OTHER;
+            //return LIBUSB_ERROR_OTHER;
             return -1;
         }
 
@@ -244,14 +233,12 @@ namespace winutil {
         free(dev_interface_details);
 
         if (*dev_interface_path == NULL) {
-    //        usbi_err(ctx, "could not allocate interface path for %s devInst %X",
-    //            guid_to_string(guid), dev_info_data->DevInst);
-    //        return LIBUSB_ERROR_NO_MEM;
+            //return LIBUSB_ERROR_NO_MEM;
             qDebug() << "could not allocate interface path for" << _index << "devInst" << dev_info_data->DevInst;
             return -2;
         }
 
-    //    return LIBUSB_SUCCESS;
+        //return LIBUSB_SUCCESS;
         return 0;
     }
 
@@ -262,37 +249,29 @@ namespace winutil {
         HDEVINFO *dev_info, dev_info_intf;
         SP_DEVINFO_DATA dev_info_data;
         DWORD _index = 0;
-    //    int r = LIBUSB_SUCCESS;
+        //int r = LIBUSB_SUCCESS;
         int r = 0;
-        // PASS 2 : (re)enumerate HUBS
         dev_info_intf = SetupDiGetClassDevsA(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES | DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
         if (dev_info_intf == INVALID_HANDLE_VALUE) {
-    //        usbi_err(ctx, "failed to obtain device info list: %s", windows_error_str(0));
-    //        return LIBUSB_ERROR_OTHER;
             qDebug() << "failed to obtain device info list";
+            //return LIBUSB_ERROR_OTHER;
             error_code = -1;
         }
             dev_info = &dev_info_intf;
             for (int busNumber = 1; ; busNumber++) {
-                // safe loop: free up any (unprotected) dynamic resource
-                // NB: this is always executed before breaking the loop
-                // Safe loop: end of loop conditions
-
-    //            if (r != LIBUSB_SUCCESS)
+                //if (r != LIBUSB_SUCCESS)
                 if (r != 0)
 
                     break;
 
                 if (busNumber == UINT8_MAX) {
-    //                usbi_warn(ctx, "program assertion failed - found more than %u buses, skipping the rest.", UINT8_MAX);
                     qDebug() << "program assertion failed - found more than" << UINT8_MAX << "buses, skipping the rest.";
                     break;
                 }
 
-                // Except for GEN, all passes deal with device interfaces
                 char *dev_interface_path = nullptr;
                 r = get_interface_details(*dev_info, &dev_info_data, &GUID_DEVINTERFACE_USB_HOST_CONTROLLER, &_index, &dev_interface_path);
-    //            if ((r != LIBUSB_SUCCESS) || (dev_interface_path == NULL)) {
+                //if ((r != LIBUSB_SUCCESS) || (dev_interface_path == NULL)) {
                 if ((r != 0) || (dev_interface_path == NULL)) {
                     _index = 0;
                     break;
@@ -302,13 +281,10 @@ namespace winutil {
                 // Read the Device ID path
                 char instanceId[MAX_PATH_LENGTH];
                 if (!SetupDiGetDeviceInstanceIdA(*dev_info, &dev_info_data, instanceId, sizeof(instanceId), nullptr)) {
-    //                usbi_warn(ctx, "could not read the device instance ID for devInst %X, skipping",
-    //                      dev_info_data.DevInst);
                     qDebug() << "could not read the device instance ID for devInst" << dev_info_data.DevInst << ", skipping";
                     continue;
                 }
                 rootHubsBussesMap[QString(instanceId)] = busNumber;
-    //            printf("assigning HCD '%s' bus number %u\n", instanceId, busNumber);
                 qDebug() << "assigning HCD '" << instanceId << "' bus number" << busNumber;
             }
 
@@ -347,7 +323,7 @@ namespace winutil {
                                         DIGCF_ALLCLASSES | DIGCF_PRESENT);
         if (hDevInfo == INVALID_HANDLE_VALUE) {
             qDebug() << "Unable to get list of connected devices";
-//            return false;
+            return QString{"1"};
         }
 
         // Find the ones that are driverless
