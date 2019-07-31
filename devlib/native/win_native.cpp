@@ -317,7 +317,7 @@ namespace winutil {
     }
 
 
-    static auto extractUsbPortPath(QString const& locationPath) {
+    static auto extractUSBPorts(QString const& locationPath) {
         QString ports = "";
         QRegExp usbPort("USB\\((\\d+)");
         int pos = 0;
@@ -325,11 +325,7 @@ namespace winutil {
             ports += QString(".") + usbPort.cap(1);
             pos += usbPort.matchedLength();
         }
-
-        QString hub = QString(locationPath).replace(QRegularExpression(".*USBROOT\\((\\d+).*"), "\\1");
-        hub = QString::number(hub.toInt() + 1);
-
-        return ports.replace(QRegularExpression("^\\."), hub + "-");
+        return ports;
     }
 
 
@@ -400,10 +396,12 @@ namespace winutil {
 
     static auto getUsbPortPath(DeviceProperties const& deviceProperties) {
         auto ports = extractUSBPorts(deviceProperties.locationPath);
+
         qDebug() << "PORTS:" << ports;
+
         QString busNumber = findBusNumber(deviceProperties.instanceId);
         return ports.replace(QRegularExpression("^\\."), busNumber + "-");
-     }
+    }
 
 
     static auto driveNumber(QString const& physicalDriveName) {
@@ -597,7 +595,7 @@ namespace winutil {
                 if (deviceProperties.containerId == containerId
                         && !deviceProperties.instanceId.contains("MI_")) {
                     devInfo.devId = extractDevPidVidInfo(deviceProperties.instanceId);
-                    devInfo.usbPortPath = extractUsbPortPath(deviceProperties.locationPath);
+                    devInfo.usbPortPath = getUsbPortPath(deviceProperties);
                     qDebug() << "ContainerId matched";
                     qDebug() << "device instanceId:" << deviceProperties.instanceId << ", port_path:" << devInfo.usbPortPath;
                 }
