@@ -542,6 +542,14 @@ std::vector<std::tuple<int, int, QString, QString>>
         }
     );
 
+    qDebug(winutil::winlog()) << "Devices list:";
+    for (auto& device : devicesList) {
+        qDebug(winutil::winlog()) << "vid:" << std::get<0>(device)
+                << ", pid:" << std::get<1>(device)
+                << ", filePath:" << std::get<2>(device)
+                << ", portPath:" << std:: get<3>(device);
+    }
+
     return devicesList;
 }
 
