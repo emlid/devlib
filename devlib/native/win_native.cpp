@@ -269,6 +269,7 @@ namespace winutil {
             handler(devInfo);
         }
 
+        SetupDiDestroyDeviceInfoList(hDevInfo);
         return true;
     }
 
