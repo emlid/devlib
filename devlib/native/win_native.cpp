@@ -159,7 +159,7 @@ namespace winutil {
     }
 
 
-    static auto extractUsbPortPath(QString const& locationPath) {
+    static auto extractUSBPorts(QString const& locationPath) {
         QString ports = "";
         QRegExp usbPort("USB\\((\\d+)");
         int pos = 0;
@@ -167,11 +167,7 @@ namespace winutil {
             ports += QString(".") + usbPort.cap(1);
             pos += usbPort.matchedLength();
         }
-
-        QString hub = QString(locationPath).replace(QRegularExpression(".*USBROOT\\((\\d+).*"), "\\1");
-        hub = QString::number(hub.toInt() + 1);
-
-        return ports.replace(QRegularExpression("^\\."), hub + "-");
+        return ports;
     }
 
 
@@ -220,6 +216,16 @@ namespace winutil {
             cachedDeviceBuses[devInstanceId] = bus;
         }
         return QString::number(bus);
+    }
+
+
+    static auto getUsbPortPath(const DEVINST & handle,
+                               const QString & locationPath,
+                               QMap<QString, int> & cachedDeviceBuses) {
+        auto ports = extractUSBPorts(locationPath);
+
+        QString busNumber = findBusNumber(handle, cachedDeviceBuses);
+        return ports.replace(QRegularExpression("^\\."), busNumber + "-");
     }
 
 
@@ -510,9 +516,10 @@ std::vector<std::tuple<int, int, QString, QString>>
 {
     auto devicesList = std::vector<std::tuple<int, int, QString, QString>>();
     auto usbDevicesByContainerIdsMap = winutil::getMapOfUsbDevicesByContainerIds();
+    auto cachedDevicesBuses = QMap<QString, int>{};
 
     winutil::foreachDevices(TEXT("USBSTOR"),
-        [&devicesList, &usbDevicesByContainerIdsMap]
+        [&devicesList, &usbDevicesByContainerIdsMap, &cachedDevicesBuses]
                             (winutil::DeviceProperties deviceProperties) -> void {
             QString deviceInstanceId = deviceProperties.instanceId;
             auto driveNum = winutil::driveNumber(
@@ -530,7 +537,7 @@ std::vector<std::tuple<int, int, QString, QString>>
             }
 
             auto devId = winutil::extractDevPidVidInfo(usbDevProperties.instanceId);
-            auto usbPortPath = winutil::extractUsbPortPath(usbDevProperties.locationPath);
+            auto usbPortPath = winutil::getUsbPortPath(usbDevProperties.handle, usbDevProperties.locationPath, cachedDevicesBuses);
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
 
             devicesList.emplace_back(
