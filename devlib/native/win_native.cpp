@@ -97,7 +97,7 @@ namespace winutil {
         QString locationPath;
     };
 
-    using DeviceInterfaceHandler = std::function<void(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
+    using DeviceInterfaceHandler = std::function<bool(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
     using DeviceHandler = std::function<void(DeviceProperties)>;
 
 
@@ -163,7 +163,7 @@ namespace winutil {
     }
 
 
-    static bool foreachDevicesInterface(GUID guid, DeviceInterfaceHandler deviceHandler) {
+    static bool foreachDevicesInterface(GUID guid, DeviceInterfaceHandler deviceInterfaceHandler) {
         SP_DEVINFO_DATA devInfoData;
         devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
@@ -212,7 +212,8 @@ namespace winutil {
                 continue;
             }
 
-            deviceHandler(detailData);
+            if (deviceInterfaceHandler(detailData))
+                break;
         }
 
         ::SetupDiDestroyDeviceInfoList(deviceInfoSet);
@@ -275,11 +276,12 @@ namespace winutil {
         auto deviceDiskPath = QString();
 
         foreachDevicesInterface(GUID_DEVINTERFACE_DISK, [&deviceDiskPath, &usbDeviceSerialNumber]
-            (auto detailData) -> void {
+            (auto detailData) -> bool {
                 auto path = QString::fromWCharArray(detailData->DevicePath);
-                if (!path.contains(usbDeviceSerialNumber)) return;
+                if (!path.contains(usbDeviceSerialNumber)) return false;
 
                 deviceDiskPath = std::move(path);
+                return true;
             }
         );
 
