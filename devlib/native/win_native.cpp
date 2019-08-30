@@ -121,6 +121,39 @@ namespace winutil {
     }
 
 
+    static auto enumerateRootBuses(void) -> QMap<QString, int>
+    {
+        auto rootHubsBusesMap = QMap<QString, int>{};
+
+        auto deviceInfoSet = ::SetupDiGetClassDevs(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES | DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+        if (deviceInfoSet == INVALID_HANDLE_VALUE)
+            return {};
+
+        auto busNumber = 0;
+        DWORD index = 0;
+        SP_DEVINFO_DATA devInfoData;
+        devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+        while (SetupDiEnumDeviceInfo(deviceInfoSet, index, &devInfoData)) {
+            index++;
+
+            SP_DEVICE_INTERFACE_DATA devInterfaceData;
+            devInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+            if (!SetupDiEnumDeviceInterfaces(deviceInfoSet, &devInfoData, &GUID_DEVINTERFACE_USB_HOST_CONTROLLER, 0, &devInterfaceData))
+                continue;
+
+            busNumber++;
+
+            char instanceId[MAX_DEVICE_ID_LEN];
+            if (!SetupDiGetDeviceInstanceIdA(deviceInfoSet, &devInfoData, instanceId, sizeof(instanceId), nullptr)) {
+                continue;
+            }
+            rootHubsBusesMap.insert(instanceId, busNumber);
+        }
+        SetupDiDestroyDeviceInfoList(deviceInfoSet);
+        return rootHubsBusesMap;
+    }
+
+
     static auto extractUsbPortPath(QString const& locationPath) {
         QString ports = "";
         QRegExp usbPort("USB\\((\\d+)");
