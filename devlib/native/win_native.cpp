@@ -12,6 +12,8 @@
 
 #include <memory>
 
+#include <QMap>
+
 namespace winutil {
     Q_LOGGING_CATEGORY(winlog, "windows_native");
 
@@ -304,18 +306,17 @@ namespace winutil {
     }
 
 
-    static auto getDevInfo(const QString containerId) -> DevInfo {
-        DevInfo devInfo;
+    static auto getMapOfUsbDevicesByContainerIds(void) -> QMap<QString, DeviceProperties> {
+        auto usbDevicesByContainerIdsMap = QMap<QString, DeviceProperties>{};
         foreachDevices(TEXT("USB"),
-            [&containerId, &devInfo] (DeviceProperties deviceProperties) -> void {
-                if (deviceProperties.containerId == containerId
-                        && !deviceProperties.instanceId.contains("MI_")) {
-                    devInfo.devId = extractDevPidVidInfo(deviceProperties.instanceId);
-                    devInfo.usbPortPath = extractUsbPortPath(deviceProperties.locationPath);
+            [&usbDevicesByContainerIdsMap] (DeviceProperties deviceProperties) -> void {
+                if (!deviceProperties.instanceId.contains("MI_")) {
+                    usbDevicesByContainerIdsMap.insert(deviceProperties.containerId,
+                                                       deviceProperties);
                 }
             }
         );
-       return devInfo;
+        return usbDevicesByContainerIdsMap;
     }
 }
 
@@ -420,11 +421,12 @@ std::vector<std::tuple<int, int, QString, QString>>
     devlib::native::requestUsbDeviceList(void)
 {
     auto devicesList = std::vector<std::tuple<int, int, QString, QString>>();
+    auto usbDevicesByContainerIdsMap = winutil::getMapOfUsbDevicesByContainerIds();
 
     winutil::foreachDevices(TEXT("USBSTOR"),
-        [&devicesList] (winutil::DeviceProperties deviceProperties) -> void {
+        [&devicesList, &usbDevicesByContainerIdsMap]
+                            (winutil::DeviceProperties deviceProperties) -> void {
             QString deviceInstanceId = deviceProperties.instanceId;
-
             auto driveNum = winutil::driveNumber(
                 winutil::deviceDiskPath(deviceInstanceId)
             );
@@ -433,14 +435,21 @@ std::vector<std::tuple<int, int, QString, QString>>
                 return;
             }
 
-            auto devInfo = winutil::getDevInfo(deviceProperties.containerId);
+            auto usbDevProperties = usbDevicesByContainerIdsMap.value(deviceProperties.containerId);
+            if (usbDevProperties.instanceId.isEmpty()) {
+                qCritical(winutil::winlog()) << "Unable to find USB device using containerId";
+                return;
+            }
+
+            auto devId = winutil::extractDevPidVidInfo(usbDevProperties.instanceId);
+            auto usbPortPath = winutil::extractUsbPortPath(usbDevProperties.locationPath);
             auto deviceFilePath = winutil::nameFromDriveNumber(driveNum);
 
             devicesList.emplace_back(
-                devInfo.devId.vid,
-                devInfo.devId.pid,
+                devId.vid,
+                devId.pid,
                 deviceFilePath,
-                devInfo.usbPortPath
+                usbPortPath
             );
         }
     );
