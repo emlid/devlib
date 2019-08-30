@@ -13,9 +13,13 @@
 #include <memory>
 
 #include <QMap>
+#include <QSet>
 
 namespace winutil {
     Q_LOGGING_CATEGORY(winlog, "windows_native");
+
+    constexpr auto UNABLE_TO_GET_DEV_PARENT = -1;
+    constexpr auto UNABLE_TO_GET_DEV_ID = -2;
 
     constexpr auto win32IOBlockDivider(void) {
         return 512;
@@ -167,6 +171,54 @@ namespace winutil {
         hub = QString::number(hub.toInt() + 1);
 
         return ports.replace(QRegularExpression("^\\."), hub + "-");
+    }
+
+
+    static auto findBusNumber(DEVINST const& handle, QMap<QString, int> & cachedDeviceBuses) {
+        static auto rootHubsBuses = QMap<QString, int>{};
+        if (rootHubsBuses.isEmpty()) {
+            qDebug(winlog()) << "Enumerating buses...";
+            rootHubsBuses = enumerateRootBuses();
+        }
+        qDebug(winlog()) << "Buses" << rootHubsBuses;
+
+        auto currentDevInst = handle;
+        DEVINST parentDevInst;
+        WCHAR instanceID [MAX_DEVICE_ID_LEN];
+
+        auto traversedDevices = QSet<QString>{};
+        CM_Get_Device_ID(currentDevInst, instanceID , MAX_PATH, 0);
+        traversedDevices.insert(QString::fromWCharArray(instanceID));
+
+        int bus;
+        for(;;) {
+            if (CM_Get_Parent(&parentDevInst, currentDevInst, 0) != CR_SUCCESS) {
+                bus = UNABLE_TO_GET_DEV_PARENT;
+                break;
+            }
+            if (CM_Get_Device_ID(parentDevInst, instanceID , MAX_PATH, 0) != CR_SUCCESS) {
+                bus = UNABLE_TO_GET_DEV_ID;
+                break;
+            }
+
+            auto parentInstanceId = QString::fromWCharArray(instanceID);
+            qDebug(winlog()) << "parentInstanceId" << parentInstanceId;
+            if (rootHubsBuses.contains(parentInstanceId)) {
+                bus = rootHubsBuses[parentInstanceId];
+                break;
+            }
+            if (cachedDeviceBuses.contains(parentInstanceId)) {
+                bus = cachedDeviceBuses[parentInstanceId];
+                break;
+            }
+            traversedDevices.insert(parentInstanceId);
+            currentDevInst = parentDevInst;
+        }
+
+        for (auto & devInstanceId : traversedDevices) {
+            cachedDeviceBuses[devInstanceId] = bus;
+        }
+        return QString::number(bus);
     }
 
 
