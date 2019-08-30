@@ -101,6 +101,7 @@ namespace winutil {
         QString instanceId;
         QString containerId;
         QString locationPath;
+        DEVINST handle;
     };
 
     using DeviceInterfaceHandler = std::function<bool(PSP_DEVICE_INTERFACE_DETAIL_DATA)>;
@@ -336,6 +337,7 @@ namespace winutil {
             if (status != CR_SUCCESS)
                 continue;
 
+            devInfo.handle = DeviceInfoData.DevInst;
             devInfo.instanceId = QString::fromWCharArray(szDeviceInstanceID);
 
             if (SetupDiGetDevicePropertyW (hDevInfo, &DeviceInfoData, &DEVPKEY_Device_BusReportedDeviceDesc,
