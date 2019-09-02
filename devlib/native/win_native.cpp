@@ -448,8 +448,8 @@ std::vector<std::tuple<int, int, QString, QString>>
             devicesList.emplace_back(
                 devId.vid,
                 devId.pid,
-                deviceFilePath,
-                usbPortPath
+                std::move(deviceFilePath),
+                std::move(usbPortPath)
             );
         }
     );
