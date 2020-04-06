@@ -298,8 +298,12 @@ auto devlib::native::requestUsbDeviceList(void)
         ::CFNumberGetValue(vidRef, kCFNumberSInt32Type, &vid);
         ::CFNumberGetValue(pidRef, kCFNumberSInt32Type, &pid);
 
-        //usbPortPath is not yet supported. Therefore LocationPortPath is None
-        devlist.push_back(std::make_tuple(vid, pid, QString("/dev/%1").arg(bsdName), QString("None")));
+        auto usbPortPath = macxutil::getUsbPortPath(usbDeviceRef);
+        if (usbPortPath.isEmpty()) {
+            qCCritical(macxutil::macxlog()) << "Unable to get USB port path";
+        }
+
+        devlist.push_back(std::make_tuple(vid, pid, QString("/dev/%1").arg(bsdName), usbPortPath));
     }
 
     return devlist;
