@@ -124,6 +124,45 @@ namespace macxutil {
         free(buffer); // If we failed
         return NULL;
     }
+
+
+    auto convertHexQStringToDecQString(const QString & hexNumber) -> QString
+    {
+        return QString::number(hexNumber.toInt(nullptr, 16));
+    }
+
+
+    auto extractBusNumberFromLocationId(const QString & locationID) -> QString
+    {
+        return convertHexQStringToDecQString(locationID.left(2));
+    }
+
+
+    auto extractUsbPortsFromLocationId(const QString & locationID) -> QStringList
+    {
+        auto usbPortsInHex = QString{locationID}.remove(0,2) // remove leading bus number
+                                                .remove("0") // remove trailing zeros
+                                                .split("", QString::SkipEmptyParts);
+        auto usbPorts = QStringList{};
+        std::transform(usbPortsInHex.cbegin(),
+                       usbPortsInHex.cend(),
+                       std::back_inserter(usbPorts),
+                       convertHexQStringToDecQString);
+        return usbPorts;
+    }
+
+
+    auto getUsbPortPath(io_service_t usbDeviceRef) -> QString
+    {
+        io_name_t locationID;
+        auto result = ::IORegistryEntryGetLocationInPlane(usbDeviceRef, kIOServicePlane, locationID);
+        if (result != KERN_SUCCESS) {
+            return {};
+        }
+        auto busNumber = extractBusNumberFromLocationId(locationID);
+        auto usbPorts = extractUsbPortsFromLocationId(locationID);
+        return busNumber + "-" + usbPorts.join(".");
+    }
 }
 
 
