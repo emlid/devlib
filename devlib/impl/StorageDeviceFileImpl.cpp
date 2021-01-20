@@ -1,6 +1,28 @@
 #include "StorageDeviceFileImpl.h"
 
 
+namespace {
+
+    bool umountDevice(const std::shared_ptr<devlib::IStorageDeviceInfo> deviceInfo)
+    {
+        if (devlib::native::umountDisk(deviceInfo->filePath())) {
+            return true;
+        }
+
+        auto mntpts = deviceInfo->mountpoints();
+        for (auto const & mntpt : mntpts) {
+            auto mntptLock = mntpt->umount();
+            if (!mntptLock->locked()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+}
+
+
 devlib::impl::StorageDeviceFileImpl::
     StorageDeviceFileImpl(QString const& deviceFilename,
                           std::shared_ptr<IStorageDeviceInfo> storageDeviceInfo)
@@ -12,16 +34,10 @@ devlib::impl::StorageDeviceFileImpl::
 bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode)
 {
     Q_UNUSED(mode);
-    // first: unmount all mounpoints
-    auto mntpts = _deviceInfo->mountpoints();
-
-    for (auto const& mntpt : mntpts) {
-        auto mntptLock = mntpt->umount();
-        if (!mntptLock->locked()){
-            return false;
-        }
+    // first: unmount disk
+    if (!umountDevice(_deviceInfo)) {
+         return false;
     }
-
     // second: open file handle
     _fileHandle = native::io::open(_deviceFilename.toStdString().data());
 
