@@ -23,22 +23,19 @@ public:
 
     virtual ~StorageDeviceFileImpl(void) { close_core(); }
 private:
-    virtual bool open_core(OpenMode mode, bool withAuthorization = false) override;
-    virtual void close_core(void) override;
+    bool open_core(OpenMode mode, bool withAuthorization = false) override;
+    void close_core(void) override;
 
-    virtual auto readData_core(char* data, qint64 len)
-        -> qint64 override;
+    auto readData_core(char* data, qint64 len) -> qint64 override;
 
-    virtual auto writeData_core(char const* data, qint64 len)
-        -> qint64 override;
+    auto writeData_core(char const* data, qint64 len) -> qint64 override;
 
-    virtual auto fileName_core(void) const
+    auto fileName_core(void) const
         -> QString override { return _deviceFilename; }
 
-    virtual auto seek_core(qint64)
-        -> bool override;
+    auto seek_core(qint64) -> bool override;
 
-    virtual void sync_core(void) override;
+    void sync_core(void) override;
 
     QString _deviceFilename;
     std::shared_ptr<devlib::IStorageDeviceInfo> _deviceInfo;
