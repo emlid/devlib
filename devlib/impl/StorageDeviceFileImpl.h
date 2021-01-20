@@ -23,7 +23,7 @@ public:
 
     virtual ~StorageDeviceFileImpl(void) { close_core(); }
 private:
-    virtual bool open_core(OpenMode mode) override;
+    virtual bool open_core(OpenMode mode, bool withAuthorization = false) override;
     virtual void close_core(void) override;
 
     virtual auto readData_core(char* data, qint64 len)

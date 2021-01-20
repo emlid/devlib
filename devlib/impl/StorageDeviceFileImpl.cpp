@@ -31,7 +31,7 @@ devlib::impl::StorageDeviceFileImpl::
 { }
 
 
-bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode)
+bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode, bool withAuthorization)
 {
     Q_UNUSED(mode);
     // first: unmount disk
@@ -39,7 +39,11 @@ bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode)
          return false;
     }
     // second: open file handle
-    _fileHandle = native::io::open(_deviceFilename.toStdString().data());
+    if (withAuthorization) {
+        _fileHandle = native::io::authOpen(_deviceFilename.toStdString().data());
+    } else {
+        _fileHandle = native::io::open(_deviceFilename.toStdString().data());
+    }
 
     QFile::setOpenMode(mode);
 
