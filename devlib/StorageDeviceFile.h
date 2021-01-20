@@ -19,6 +19,11 @@ public:
         return open_core(mode);
     }
 
+    bool authOpen(OpenMode mode) {
+        Q_ASSERT(!isOpen());
+        return open_core(mode, true);
+    }
+
     void close(void) override final { close_core(); }
     auto fileName() const
         -> QString override final { return fileName_core(); }
@@ -54,7 +59,7 @@ protected:
     }
 
 private:
-    virtual bool open_core(OpenMode mode) = 0;
+    virtual bool open_core(OpenMode mode, bool withAuthorization = false) = 0;
     virtual void close_core(void) = 0;
     virtual void sync_core() = 0;
 
