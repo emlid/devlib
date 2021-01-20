@@ -310,7 +310,7 @@ auto devlib::native::requestUsbDeviceList(void)
 }
 
 
-auto devlib::native::umount(QString const& mntpt)
+auto devlib::native::umountPartition(QString const& mntpt)
     -> std::unique_ptr<LockHandle>
 {
     auto mntptName = mntpt.toStdString();

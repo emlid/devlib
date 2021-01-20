@@ -415,7 +415,7 @@ namespace winutil {
 }
 
 
-auto devlib::native::umount(QString const& mntpt)
+auto devlib::native::umountPartition(QString const& mntpt)
     -> std::unique_ptr<LockHandle>
 {
     auto createMode = FILE_SHARE_READ | FILE_SHARE_WRITE;
