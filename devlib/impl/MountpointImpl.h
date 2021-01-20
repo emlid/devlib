@@ -35,7 +35,7 @@ private:
 
     virtual auto umount_core(void)
         -> std::unique_ptr<devlib::IMountpointLock> override
-    { return _locksFactory(native::umount(_fsPath)); }
+    { return _locksFactory(native::umountPartition(_fsPath)); }
 
     QString _fsPath;
     impl::MountpointLockFactory_t _locksFactory;

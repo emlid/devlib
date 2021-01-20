@@ -102,7 +102,7 @@ namespace linutil {
     }
 }
 
-auto devlib::native::umount(QString const& mntpt)
+auto devlib::native::umountPartition(QString const& mntpt)
     -> std::unique_ptr<LockHandle>
 {
     if (::umount2(mntpt.toStdString().data(), 0) != 0) {

@@ -14,7 +14,7 @@ namespace devlib {
             virtual ~LockHandle() = default;
         };
 
-        auto umount(QString const& mntpt)
+        auto umountPartition(QString const& mntpt)
             -> std::unique_ptr<LockHandle>;
 
         bool mount(QString const& dev, QString const& path);
