@@ -14,13 +14,10 @@ bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode)
     Q_UNUSED(mode);
     // first: unmount all mounpoints
     auto mntpts = _deviceInfo->mountpoints();
-    _mntptsLocks.clear();
 
     for (auto const& mntpt : mntpts) {
         auto mntptLock = mntpt->umount();
-        if (mntptLock->locked()){
-            _mntptsLocks.push_back(std::move(mntptLock));
-        } else {
+        if (!mntptLock->locked()){
             return false;
         }
     }
@@ -38,7 +35,6 @@ void devlib::impl::StorageDeviceFileImpl::close_core(void)
 {
     QFile::setOpenMode(QIODevice::NotOpen);
     _fileHandle.reset();
-    _mntptsLocks.clear();
 }
 
 
