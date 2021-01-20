@@ -1,9 +1,9 @@
-#include <QCoreApplication>
 #include "devlib.h"
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    Q_UNUSED(argc)
+    Q_UNUSED(argv)
 
     auto service = devlib::StorageDeviceService::instance();
     Q_ASSERT(service.get());
@@ -35,6 +35,4 @@ int main(int argc, char *argv[])
             qInfo() << "";
         }
     }
-
-    return a.exec();
 }
