@@ -17,6 +17,8 @@ namespace devlib {
         auto umountPartition(QString const& mntpt)
             -> std::unique_ptr<LockHandle>;
 
+        bool umountDisk(QString const & devicePath);
+
         bool mount(QString const& dev, QString const& path);
 
         auto mntptsList(void) -> std::vector<QString>;
