@@ -12,6 +12,10 @@ linux {
 }
 
 macx {
+    HEADERS += \
+        $$PWD/macos_utils/macos_utils.h \
+
     SOURCES  += \
         $$PWD/macosx_native.cpp \
+        $$PWD/macos_utils/macos_utils.cpp \
 }
