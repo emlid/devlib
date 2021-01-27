@@ -669,6 +669,15 @@ auto devlib::native::io::open(char const* filename)
 }
 
 
+// Temporarily unsupported
+auto devlib::native::io::authOpen(char const* filename)
+    -> std::unique_ptr<FileHandle>
+{
+    Q_UNUSED(filename);
+    return nullptr;
+}
+
+
 bool devlib::native::io::seek(FileHandle* handle, qint64 pos)
 {
     auto winHandle = dynamic_cast<winutil::WinHandle*>(handle)->handle;

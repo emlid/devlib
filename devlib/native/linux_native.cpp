@@ -287,6 +287,15 @@ auto devlib::native::io::open(char const* filename)
 }
 
 
+// Temporarily unsupported
+auto devlib::native::io::authOpen(char const* filename)
+    -> std::unique_ptr<FileHandle>
+{
+    Q_UNUSED(filename);
+    return nullptr;
+}
+
+
 auto devlib::native::io::seek(FileHandle* handle, qint64 pos)
    -> bool
 {

@@ -43,6 +43,9 @@ namespace devlib {
             auto open(char const* filename)
                 -> std::unique_ptr<FileHandle>;
 
+            auto authOpen(char const * filename)
+                -> std::unique_ptr<FileHandle>;
+
             bool seek(FileHandle*, qint64 pos);
 
             void sync(FileHandle* handle);

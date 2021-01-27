@@ -292,6 +292,27 @@ auto devlib::native::io::open(char const* filename)
 }
 
 
+auto devlib::native::io::authOpen(char const* filename)
+    -> std::unique_ptr<FileHandle>
+{
+    if (!macos_utils::isDiskName(filename)) {
+         qCWarning(macos_utils::macxlog()) << filename << " is not diskname";
+         return {};
+     }
+
+     auto rawDiskName = macos_utils::convertToRawDiskName(filename);
+
+     auto fd = macos_utils::authOpenStorageDevice(rawDiskName.toUtf8());
+
+     if (fd < 0) {
+         qCWarning(macos_utils::macxlog()) << "Unable to open file with authentication";
+         return {};
+     }
+
+     return macos_utils::makeHandle(fd);
+}
+
+
 bool devlib::native::io::seek(FileHandle* handle, qint64 pos)
 {
     Q_ASSERT(handle);
