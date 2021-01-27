@@ -118,6 +118,13 @@ auto devlib::native::umountPartition(QString const& mntpt)
 }
 
 
+// Temporarily unsupported
+bool devlib::native::umountDisk(QString const & devicePath)
+{
+    Q_UNUSED(devicePath);
+    return false;
+}
+
 
 bool devlib::native::mount(QString const& dev, QString const& path)
 {

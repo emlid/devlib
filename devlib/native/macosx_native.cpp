@@ -163,6 +163,13 @@ auto devlib::native::umountPartition(QString const& mntpt)
 }
 
 
+bool devlib::native::umountDisk(QString const & devicePath)
+{
+    auto unmountResult = macos_utils::unmountDiskWithRunLoop(devicePath.toStdString().data());
+    return unmountResult == macos_utils::UnmountResult::Success;
+}
+
+
 bool devlib::native::mount(const QString &dev, const QString &path)
 {
     QProcess mount;
