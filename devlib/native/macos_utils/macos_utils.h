@@ -54,6 +54,19 @@ namespace macos_utils {
 
     auto getUsbPortPath(io_service_t usbDeviceRef) -> QString;
 
+    enum class UnmountResult
+    {
+        Undefined,
+        Success,
+        InvalidDriveError,
+        AccessDeniedError,
+        RunloopStallError,
+        GeneralError
+    };
+
+
+    auto unmountDiskWithRunLoop(const char * device) -> UnmountResult;
+
 }
 
 
