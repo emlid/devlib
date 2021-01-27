@@ -18,7 +18,7 @@
 #include "native.h"
 
 
-namespace macxutil {
+namespace macx_utils {
     Q_LOGGING_CATEGORY(macxlog, "macx_native");
 
 
@@ -172,16 +172,16 @@ auto devlib::native::devicePartitions(QString const& devicePath)
     Q_ASSERT(!devicePath.isEmpty());
     auto deviceName = devicePath.split('/').last();
 
-    qCDebug(macxutil::macxlog()) << "Run 'diskutil list -plist'";
+    qCDebug(macx_utils::macxlog()) << "Run 'diskutil list -plist'";
 
     QProcess diskutil;
     diskutil.start("diskutil list -plist", QIODevice::ReadOnly);
     diskutil.waitForFinished();
 
     if (diskutil.error() != QProcess::ProcessError::UnknownError) {
-        qCWarning(macxutil::macxlog()) << "Diskutil failed. "
-                                       << diskutil.errorString()
-                                       << diskutil.readAllStandardError();
+        qCWarning(macx_utils::macxlog()) << "Diskutil failed. "
+                                         << diskutil.errorString()
+                                         << diskutil.readAllStandardError();
     }
 
     auto devicePartitionnsList = std::vector<
@@ -196,21 +196,21 @@ auto devlib::native::devicePartitions(QString const& devicePath)
     } docError{"", 0, 0};
 
     if (!domDocument.setContent(&diskutil, &docError.msg, &docError.line, &docError.col) ) {
-        qCWarning(macxutil::macxlog()) << "Can not create DOM document "
+        qCWarning(macx_utils::macxlog()) << "Can not create DOM document "
                                           "from diskutil output. "
-                                       << "Detailed: "
-                                       << "msg: "  << docError.msg
-                                       << "line: " << docError.line
-                                       << "col: "  << docError.col;
+                                         << "Detailed: "
+                                         << "msg: "  << docError.msg
+                                         << "line: " << docError.line
+                                         << "col: "  << docError.col;
         return {};
     }
 
     auto docElement = domDocument.documentElement();
-    auto partitionsList = macxutil::
+    auto partitionsList = macx_utils::
             extractArrayWithPartitionsOfDevice(docElement, deviceName);
 
     if (partitionsList.isNull()) {
-        qCWarning(macxutil::macxlog()) << "diskutil: Partitions list is empty";
+        qCWarning(macx_utils::macxlog()) << "diskutil: Partitions list is empty";
         return {};
     }
 
@@ -225,15 +225,15 @@ auto devlib::native::devicePartitions(QString const& devicePath)
         for (auto j = 0; j < partDictChilds.count(); j++) {
             auto child = partDictChilds.at(j).toElement();
 
-            macxutil::extractValueByKey(child, "DeviceIdentifier",
+            macx_utils::extractValueByKey(child, "DeviceIdentifier",
                 [&partName]  (auto const& value) { partName = value; });
-            macxutil::extractValueByKey(child, "VolumeName",
+            macx_utils::extractValueByKey(child, "VolumeName",
                 [&partLabel] (auto const& value) { partLabel = value; });
         }
 
-        qCDebug(macxutil::macxlog()) << "Found partition with "
-                                     << "Name: " << partName
-                                     << "Label: " << partLabel;
+        qCDebug(macx_utils::macxlog()) << "Found partition with "
+                                       << "Name: " << partName
+                                       << "Label: " << partLabel;
 
         devicePartitionnsList.push_back(
             std::make_tuple(partName.prepend("/dev/"), partLabel)
@@ -252,20 +252,20 @@ auto devlib::native::requestUsbDeviceList(void)
     mach_port_t masterPort;
     auto result = ::IOMasterPort(MACH_PORT_NULL, &masterPort);
     if (result != KERN_SUCCESS) {
-        qCCritical(macxutil::macxlog()) << "can not create master port";
+        qCCritical(macx_utils::macxlog()) << "can not create master port";
         return {};
     }
 
     auto matchDictionary = IOServiceMatching(kIOUSBDeviceClassName);
     if (!matchDictionary) {
-        qCCritical(macxutil::macxlog()) << "can not create matching dictionary";
+        qCCritical(macx_utils::macxlog()) << "can not create matching dictionary";
         return {};
     }
 
     io_iterator_t ioDevsIterator = 0;
     result = IOServiceGetMatchingServices(masterPort, matchDictionary, &ioDevsIterator);
     if (result != KERN_SUCCESS) {
-        qCCritical(macxutil::macxlog()) << "can not find any matching services";
+        qCCritical(macx_utils::macxlog()) << "can not find any matching services";
         return {};
     }
 
@@ -290,7 +290,7 @@ auto devlib::native::requestUsbDeviceList(void)
                         CFSTR("idProduct"), nullptr,
                         kIORegistryIterateRecursively );
 
-        auto bsdName = macxutil::MYCFStringCopyUTF8String(bsdNameRef);
+        auto bsdName = macx_utils::MYCFStringCopyUTF8String(bsdNameRef);
 
         int vid = 0;
         int pid = 0;
@@ -298,9 +298,9 @@ auto devlib::native::requestUsbDeviceList(void)
         ::CFNumberGetValue(vidRef, kCFNumberSInt32Type, &vid);
         ::CFNumberGetValue(pidRef, kCFNumberSInt32Type, &pid);
 
-        auto usbPortPath = macxutil::getUsbPortPath(usbDeviceRef);
+        auto usbPortPath = macx_utils::getUsbPortPath(usbDeviceRef);
         if (usbPortPath.isEmpty()) {
-            qCCritical(macxutil::macxlog()) << "Unable to get USB port path";
+            qCCritical(macx_utils::macxlog()) << "Unable to get USB port path";
         }
 
         devlist.push_back(std::make_tuple(vid, pid, QString("/dev/%1").arg(bsdName), usbPortPath));
@@ -316,10 +316,10 @@ auto devlib::native::umountPartition(QString const& mntpt)
     auto mntptName = mntpt.toStdString();
 
     if (::unmount(mntptName.data(), MNT_FORCE) != 0) {
-        qCWarning(macxutil::macxlog()) << "can not unmount: " << mntpt;
+        qCWarning(macx_utils::macxlog()) << "can not unmount: " << mntpt;
         return {};
     }
-    return macxutil::makeLock();
+    return macx_utils::makeLock();
 }
 
 
@@ -368,7 +368,7 @@ auto devlib::native::io::read(FileHandle* handle, char *data, qint64 sz)
     static auto const Macx_divider = 512;
 
     Q_ASSERT(handle);
-    auto macxHandle = macxutil::asMacxFileHandle(handle);
+    auto macxHandle = macx_utils::asMacxFileHandle(handle);
 
     if (sz % Macx_divider == 0) {
         return ::read(macxHandle->fd, data, sz);
@@ -380,7 +380,7 @@ auto devlib::native::io::read(FileHandle* handle, char *data, qint64 sz)
 
     readed = ::read(macxHandle->fd, tempBuffer.get(), neededSize);
     if (readed == -1) {
-        qCCritical(macxutil::macxlog()) << "Can not read from file:"
+        qCCritical(macx_utils::macxlog()) << "Can not read from file:"
                                         << ::strerror(errno);
     } else {
         std::memcpy(data, tempBuffer.get(), sz);
@@ -396,7 +396,7 @@ auto devlib::native::io::write(FileHandle* handle, char const* data, qint64 sz)
 {
     Q_ASSERT(handle);
     static auto const Macx_divider = 512;
-    auto macxHandle = macxutil::asMacxFileHandle(handle);
+    auto macxHandle = macx_utils::asMacxFileHandle(handle);
 
     if (sz % Macx_divider == 0) {
         return ::write(macxHandle->fd, data, sz);
@@ -412,7 +412,7 @@ auto devlib::native::io::write(FileHandle* handle, char const* data, qint64 sz)
     written = ::write(macxHandle->fd, tempBuffer.get(), neededSize);
 
     if (written == -1) {
-        qCWarning(macxutil::macxlog()) << "Can not write to file: "
+        qCWarning(macx_utils::macxlog()) << "Can not write to file: "
                                        << ::strerror(errno);
     }
 
@@ -423,32 +423,32 @@ auto devlib::native::io::write(FileHandle* handle, char const* data, qint64 sz)
 auto devlib::native::io::open(char const* filename)
     -> std::unique_ptr<FileHandle>
 {
-    if (!macxutil::isDiskName(filename)) {
-        qCWarning(macxutil::macxlog()) << filename << " is not diskname";
+    if (!macx_utils::isDiskName(filename)) {
+        qCWarning(macx_utils::macxlog()) << filename << " is not diskname";
         return {};
     }
 
-    auto rawDiskName = macxutil::
+    auto rawDiskName = macx_utils::
         convertToRawDiskName(filename);
 
     auto fd = ::open(rawDiskName.toStdString().data(), O_RDWR | O_SYNC);
     if (::fcntl(fd, F_GLOBAL_NOCACHE, 1)) {
-        qCWarning(macxutil::macxlog()) << "can not disable buffering";
+        qCWarning(macx_utils::macxlog()) << "can not disable buffering";
     }
 
     if (fd < 0) {
-        qCWarning(macxutil::macxlog()) << "open(2) :" << strerror(errno);
+        qCWarning(macx_utils::macxlog()) << "open(2) :" << strerror(errno);
         return {};
     }
 
-    return macxutil::makeHandle(fd);
+    return macx_utils::makeHandle(fd);
 }
 
 
 bool devlib::native::io::seek(FileHandle* handle, qint64 pos)
 {
     Q_ASSERT(handle);
-    auto macxHandle = macxutil::asMacxFileHandle(handle);
+    auto macxHandle = macx_utils::asMacxFileHandle(handle);
     return ::lseek(macxHandle->fd, pos, SEEK_SET) != -1;
 }
 
