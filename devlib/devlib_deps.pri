@@ -12,4 +12,6 @@ macx {
     LIBS += \
         -framework IOKit \
         -framework CoreFoundation \
+        -framework Security \
+
 }

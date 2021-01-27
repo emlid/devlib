@@ -67,6 +67,8 @@ namespace macos_utils {
 
     auto unmountDiskWithRunLoop(const char * device) -> UnmountResult;
 
+    auto authOpenStorageDevice(const QByteArray & filename) -> int;
+
 }
 
 
