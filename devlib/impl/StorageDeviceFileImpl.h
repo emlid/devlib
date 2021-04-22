@@ -39,6 +39,7 @@ private:
 
     QString _deviceFilename;
     std::shared_ptr<devlib::IStorageDeviceInfo> _deviceInfo;
+    std::vector<std::unique_ptr<IMountpointLock>> _mntptsLocks;
 
     std::unique_ptr<
         native::io::FileHandle
