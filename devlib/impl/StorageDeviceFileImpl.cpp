@@ -1,28 +1,6 @@
 #include "StorageDeviceFileImpl.h"
 
 
-namespace {
-
-    bool umountDevice(const std::shared_ptr<devlib::IStorageDeviceInfo> deviceInfo)
-    {
-        if (devlib::native::umountDisk(deviceInfo->filePath())) {
-            return true;
-        }
-
-        auto mntpts = deviceInfo->mountpoints();
-        for (auto const & mntpt : mntpts) {
-            auto mntptLock = mntpt->umount();
-            if (!mntptLock->locked()) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-}
-
-
 devlib::impl::StorageDeviceFileImpl::
     StorageDeviceFileImpl(QString const& deviceFilename,
                           std::shared_ptr<IStorageDeviceInfo> storageDeviceInfo)
@@ -35,8 +13,17 @@ bool devlib::impl::StorageDeviceFileImpl::open_core(OpenMode mode, bool withAuth
 {
     Q_UNUSED(mode);
     // first: unmount disk
-    if (!umountDevice(_deviceInfo)) {
-         return false;
+    if (!devlib::native::umountDisk(_deviceInfo->filePath())) {
+        auto mntpts = _deviceInfo->mountpoints();
+        _mntptsLocks.clear();
+        for (auto const & mntpt : mntpts) {
+            auto mntptLock = mntpt->umount();
+            if (mntptLock->locked()){
+                _mntptsLocks.push_back(std::move(mntptLock));
+            } else {
+                return false;
+            }
+        }
     }
     // second: open file handle
     if (withAuthorization) {
@@ -55,6 +42,7 @@ void devlib::impl::StorageDeviceFileImpl::close_core(void)
 {
     QFile::setOpenMode(QIODevice::NotOpen);
     _fileHandle.reset();
+    _mntptsLocks.clear();
 }
 
 
