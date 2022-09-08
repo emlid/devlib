@@ -96,7 +96,7 @@ auto devlib::native::requestUsbDeviceList(void)
         return {};
     }
 
-    auto matchDictionary = IOServiceMatching(kIOUSBDeviceClassName);
+    auto matchDictionary = IOServiceMatching("IOUSBHostDevice");
     if (!matchDictionary) {
         qCCritical(macos_utils::macxlog()) << "can not create matching dictionary";
         return {};
